@@ -1,4 +1,4 @@
-module pnc.com/andy-warhol
+module github.com/jiangshenghai57/andy-warhol
 
 go 1.22.0
 
