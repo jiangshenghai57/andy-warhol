@@ -2,7 +2,11 @@ module github.com/jiangshenghai57/andy-warhol
 
 go 1.22.0
 
-require github.com/gin-gonic/gin v1.10.1
+require (
+	github.com/gin-gonic/gin v1.10.1
+	github.com/razorpay/go-financial v1.1.0
+	github.com/shopspring/decimal v1.4.0
+)
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
@@ -11,6 +15,7 @@ require (
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.2.4 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect

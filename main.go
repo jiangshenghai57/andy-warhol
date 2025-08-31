@@ -33,7 +33,6 @@ func requestCashflow(c *gin.Context) {
 	mortgages = append(mortgages, newCF)
 	c.IndentedJSON(http.StatusCreated, newCF)
 
-	// mortgages = nil
 }
 
 func main() {
