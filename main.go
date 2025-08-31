@@ -1,0 +1,45 @@
+package main
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+type mortgagePool struct {
+	ID       string  `json:"id"`
+	WAC      float64 `json:"wac"`
+	WAM      int     `json:"wam"`
+	StaticDQ bool    `json:"staticdq"`
+}
+
+var mortgages = []mortgagePool{
+	{ID: "1", WAC: 3.4, WAM: 240, StaticDQ: true},
+	{ID: "1", WAC: 6.4, WAM: 360, StaticDQ: true},
+	{ID: "1", WAC: 5.0, WAM: 120, StaticDQ: true},
+}
+
+func getLoans(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, mortgages)
+}
+
+func requestCashflow(c *gin.Context) {
+	var newCF mortgagePool
+
+	if err := c.BindJSON(&newCF); err != nil {
+		return
+	}
+
+	mortgages = append(mortgages, newCF)
+	c.IndentedJSON(http.StatusCreated, newCF)
+
+	// mortgages = nil
+}
+
+func main() {
+	router := gin.Default()
+	router.GET("/loans", getLoans)
+	router.POST("/loans", requestCashflow)
+
+	router.Run("localhost:8080")
+}

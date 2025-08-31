@@ -1,0 +1,38 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, output of `go test`
+*.test
+
+# Output of the go build command
+*.out
+
+# Vendor directory (if you use vendored dependencies)
+vendor/
+
+# Go module cache (if present)
+go.sum
+
+# IDE/editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependency directories (if not using Go modules)
+Godeps/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage.*
+*.coverprofile
+*.cov
+
+andy-warhol
