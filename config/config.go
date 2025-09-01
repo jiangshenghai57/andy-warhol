@@ -11,6 +11,8 @@ import (
 // You can modify it to return the actual type instead of a string if needed.
 func typeAssertion(val interface{}) string {
 	switch v := val.(type) {
+	case nil:
+		return ""
 	case string:
 		return v
 	case int:
@@ -31,6 +33,7 @@ func typeAssertion(val interface{}) string {
 	case []string:
 		return fmt.Sprintf("%v", v)
 	default:
+		log.Println("not sure about the type here buddy")
 		return fmt.Sprintf("%v", v)
 	}
 }
@@ -62,9 +65,9 @@ func ReadConfig() (map[string]interface{}, error) {
 		panic(err)
 	}
 
-	for key, value := range result {
-		result[key] = typeAssertion(value)
-	}
+	// for key, value := range result {
+	// 	result[key] = typeAssertion(value)
+	// }
 
 	return result, err
 }

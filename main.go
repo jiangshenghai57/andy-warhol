@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -39,7 +40,7 @@ func requestCashflow(c *gin.Context) {
 
 }
 
-func log() *gin.Engine {
+func multiLog() *gin.Engine {
 	config, _ := config.ReadConfig()
 
 	LOG_PATH := config["LOG_PATH"]
@@ -53,6 +54,7 @@ func log() *gin.Engine {
 
 	gin.DefaultWriter = mw
 	gin.DefaultErrorWriter = mw
+	log.Println(config)
 
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -64,7 +66,7 @@ func log() *gin.Engine {
 
 func main() {
 
-	router := log()
+	router := multiLog()
 	router.GET("/loans", getLoans)
 	router.POST("/loans", requestCashflow)
 
