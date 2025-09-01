@@ -2,12 +2,11 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 )
 
-func ReadConfig() {
+func ReadConfig() (map[string]interface{}, error) {
 	OCP_ENV := os.Getenv("OCP_EN")
 	CONFIG_PATH := os.Getenv("CONFIG_PATH")
 
@@ -34,6 +33,5 @@ func ReadConfig() {
 		panic(err)
 	}
 
-	// Use the map
-	fmt.Println(result)
+	return result, err
 }
