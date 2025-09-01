@@ -40,3 +40,6 @@ andy-warhol
 
 # log files
 *.log
+
+# cashflow test files
+cashflow_*.json

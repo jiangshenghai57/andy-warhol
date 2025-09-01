@@ -3,10 +3,9 @@ module github.com/jiangshenghai57/andy-warhol
 go 1.22.0
 
 require (
+	amortization v0.0.0-00010101000000-000000000000
 	config v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.10.1
-	github.com/razorpay/go-financial v1.1.0
-	github.com/shopspring/decimal v1.4.0
 )
 
 require (
@@ -28,6 +27,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/razorpay/go-financial v1.1.0 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
@@ -40,3 +41,5 @@ require (
 )
 
 replace config => ./config
+
+replace amortization => ./amortization

@@ -9,31 +9,27 @@ import (
 
 // typeAssertion tries to convert an interface{} to a proper Go type and returns the string representation.
 // You can modify it to return the actual type instead of a string if needed.
-func typeAssertion(val interface{}) string {
+func convertTypes(val interface{}) interface{} {
 	switch v := val.(type) {
-	case nil:
-		return ""
-	case string:
+	case map[string]interface{}:
+		m := make(map[string]interface{})
+		for key, value := range v {
+			m[key] = convertTypes(value)
+		}
+		return m
+	case []interface{}:
+		arr := make([]interface{}, len(v))
+		for i, elem := range v {
+			arr[i] = convertTypes(elem)
+		}
+		return arr
+	case float64:
 		return v
 	case int:
-		return fmt.Sprintf("%d", v)
-	case float64:
-		// JSON numbers are decoded as float64
-		// Optionally, you can check if it's an integer value
-		if v == float64(int(v)) {
-			return fmt.Sprintf("%d", int(v))
-		}
-		return fmt.Sprintf("%f", v)
-	case bool:
-		return fmt.Sprintf("%t", v)
-	case []interface{}:
-		return typeAssertion((v))
-	case map[string]interface{}:
-		return typeAssertion(v)
-	case []string:
-		return fmt.Sprintf("%v", v)
+		return v
+	case string:
+		return v
 	default:
-		log.Println("not sure about the type here buddy")
 		return fmt.Sprintf("%v", v)
 	}
 }
@@ -65,9 +61,7 @@ func ReadConfig() (map[string]interface{}, error) {
 		panic(err)
 	}
 
-	// for key, value := range result {
-	// 	result[key] = typeAssertion(value)
-	// }
+	result = convertTypes(result).(map[string]interface{})
 
 	return result, err
 }

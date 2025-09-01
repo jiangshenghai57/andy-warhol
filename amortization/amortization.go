@@ -1,4 +1,4 @@
-package main
+package amortization
 
 import (
 	"math"
@@ -60,7 +60,7 @@ func GetAmortizationTable(l *LoanInfo) AmortizationTable {
 		j += 1
 
 		periods = append(periods, j)
-		begBal = append(begBal, tmp_face)
+		begBal = append(begBal, math.Round(tmp_face*100)/100)
 
 		interest = append(interest, math.Round(tmp_face*l.Wac/12)/100)
 
@@ -80,7 +80,7 @@ func GetAmortizationTable(l *LoanInfo) AmortizationTable {
 			tmp_face = 0
 		}
 
-		endBal = append(endBal, tmp_face)
+		endBal = append(endBal, math.Round(tmp_face*100)/100)
 	}
 
 	amortTable := AmortizationTable{
