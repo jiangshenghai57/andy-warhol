@@ -1,4 +1,6 @@
 {
     "LOG_PATH": "./",
-    "LOG_FILE": "andy-warhol.log"
+    "LOG_FILE": "andy-warhol.log",
+    "DENY_LIST": [],
+    "ALLOW_LIST": []
 }

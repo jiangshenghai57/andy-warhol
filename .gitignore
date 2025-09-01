@@ -35,4 +35,8 @@ coverage.*
 *.coverprofile
 *.cov
 
+# executable
 andy-warhol
+
+# log files
+*.log

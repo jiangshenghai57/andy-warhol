@@ -40,5 +40,3 @@ require (
 )
 
 replace config => ./config
-
-replace log_to_file => ./log_to_file

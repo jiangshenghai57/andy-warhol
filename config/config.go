@@ -2,12 +2,39 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 )
 
+// typeAssertion tries to convert an interface{} to a proper Go type and returns the string representation.
+// You can modify it to return the actual type instead of a string if needed.
+func typeAssertion(val interface{}) string {
+	switch v := val.(type) {
+	case string:
+		return v
+	case int:
+		return fmt.Sprintf("%d", v)
+	case float64:
+		// JSON numbers are decoded as float64
+		// Optionally, you can check if it's an integer value
+		if v == float64(int(v)) {
+			return fmt.Sprintf("%d", int(v))
+		}
+		return fmt.Sprintf("%f", v)
+	case bool:
+		return fmt.Sprintf("%t", v)
+	case []interface{}:
+		return typeAssertion((v))
+	case map[string]interface{}:
+		return typeAssertion(v)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
 func ReadConfig() (map[string]interface{}, error) {
-	OCP_ENV := os.Getenv("OCP_EN")
+	OCP_ENV := os.Getenv("OCP_ENV")
 	CONFIG_PATH := os.Getenv("CONFIG_PATH")
 
 	var config_path_file = ""
@@ -31,6 +58,10 @@ func ReadConfig() (map[string]interface{}, error) {
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&result); err != nil {
 		panic(err)
+	}
+
+	for key, value := range result {
+		result[key] = typeAssertion(value)
 	}
 
 	return result, err
