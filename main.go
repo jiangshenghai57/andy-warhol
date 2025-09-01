@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 
+	"config"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,6 +38,7 @@ func requestCashflow(c *gin.Context) {
 }
 
 func main() {
+	config.ReadConfig()
 	router := gin.Default()
 	router.GET("/loans", getLoans)
 	router.POST("/loans", requestCashflow)
