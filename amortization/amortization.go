@@ -31,13 +31,13 @@ type RollRateMatrix struct {
 	defualtArr []float64
 }
 
-type PrepayArr = []float64
-
 type AmortizationTable struct {
 	ID             string
 	BegBal         []float64
 	Interest       []float64
 	Principal      []float64
+	SchedBal       []float64
+	PrepayArr      []float64
 	EndBal         []float64
 	Period         []int
 	rollRateMatrix RollRateMatrix
@@ -71,18 +71,26 @@ func GetAmortizationTable(l *LoanInfo) AmortizationTable {
 			decimal.NewFromFloat(0.0), 0,
 		).Float64()
 
-		principla = append(principal, math.Round(prinPmt*100)/100)
+		principal = append(principal, math.Round(prinPmt*100)/100)
 
 		tmp_face = tmp_face - float64(prinPmt)
+
+		// zero out
+		if tmp_face < 0.0 {
+			tmp_face = 0
+		}
+
+		endBal = append(endBal, tmp_face)
 	}
 
-	var a = AmortizationTable{
-		ID: l.ID,
-
-		// interest: intPmt.Float64()
+	amortTable := AmortizationTable{
+		ID:        l.ID,
+		Period:    periods,
+		BegBal:    begBal,
+		EndBal:    endBal,
+		Interest:  interest,
+		Principal: principal,
 	}
 
-	// Println(a)
-
-	return a
+	return amortTable
 }
