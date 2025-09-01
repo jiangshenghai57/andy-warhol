@@ -2,10 +2,11 @@
 
 # Create JSON array with 100 mortgage objects
 data=""
-for i in {1..10}
+for i in {1..1000}
 do
   wac=$(echo "scale=2; 3.0 + ($i % 50) * 0.1" | bc)
   wam=$((60 + ($i % 3) * 90))
+  face=$((100000 + ($i * 5000)))  # Add face value starting at 100,000
   staticdq=$((i % 2 == 0))
   
   if [ $staticdq -eq 1 ]; then
@@ -14,7 +15,7 @@ do
     staticdq_str="false"
   fi
   
-  data="$data{\"id\": \"$i\", \"wac\": $wac, \"wam\": $wam, \"staticdq\": $staticdq_str}"
+  data="$data{\"id\": \"$i\", \"wac\": $wac, \"wam\": $wam, \"face\": $face, \"staticdq\": $staticdq_str}"
   
   if [ $i -lt 100 ]; then
     data="$data,"
