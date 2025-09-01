@@ -28,6 +28,8 @@ func typeAssertion(val interface{}) string {
 		return typeAssertion((v))
 	case map[string]interface{}:
 		return typeAssertion(v)
+	case []string:
+		return fmt.Sprintf("%v", v)
 	default:
 		return fmt.Sprintf("%v", v)
 	}

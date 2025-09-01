@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"os"
 
@@ -48,8 +49,10 @@ func log() *gin.Engine {
 
 	f, _ := os.Create(log_path + log_file)
 
-	gin.DefaultWriter = f
-	gin.DefaultErrorWriter = f
+	mw := io.MultiWriter(f, os.Stdout)
+
+	gin.DefaultWriter = mw
+	gin.DefaultErrorWriter = mw
 
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
