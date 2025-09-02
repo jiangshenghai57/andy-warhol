@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"amortization"
@@ -15,40 +17,42 @@ import (
 )
 
 type mortgagePool struct {
-	ID       string  `json:"id"`
-	WAC      float64 `json:"wac"`
-	WAM      int     `json:"wam"`
-	FACE     float64 `json:"face"`
-	StaticDQ bool    `json:"staticdq"`
+	ID       string    `json:"id"`
+	WAC      float64   `json:"wac"`
+	WAM      int       `json:"wam"`
+	FACE     float64   `json:"face"`
+	Prepay   []float64 `json:"prepay"`
+	StaticDQ bool      `json:"staticdq"`
 }
 
-var mortgages = []mortgagePool{}
+var (
+	mortgages  = []mortgagePool{}
+	mu         sync.RWMutex // Protect the mortgages slice
+	workerPool = make(chan struct{}, 100)
+)
 
 func getLoans(c *gin.Context) {
+	mu.RLock()
+	defer mu.RUnlock()
 	c.IndentedJSON(http.StatusOK, mortgages)
 }
 
 func requestCashflow(c *gin.Context) {
-
 	log.Println("requestCashflow endpoint was hit")
 
-	var newCF mortgagePool
+	var newCFs []mortgagePool // Change to slice to accept multiple loans
 
-	if err := c.BindJSON(&newCF); err != nil {
+	if err := c.BindJSON(&newCFs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	log.Println("New cashflow received:", newCF)
+	log.Printf("Received %d loans for processing", len(newCFs))
 
-	// Convert to LoanInfo for amortization calculation
-	loanInfo := &amortization.LoanInfo{
-		ID:   newCF.ID,
-		Wam:  int64(newCF.WAM),
-		Wac:  newCF.WAC,
-		Face: newCF.FACE,
-	}
-
-	mortgages = append(mortgages, newCF)
+	// Thread-safe append to mortgages
+	mu.Lock()
+	mortgages = append(mortgages, newCFs...)
+	mu.Unlock()
 
 	// Get current local time zone date
 	loc, err := time.LoadLocation("America/New_York")
@@ -57,24 +61,42 @@ func requestCashflow(c *gin.Context) {
 	}
 	localNow := time.Now().In(loc).Format(time.RFC3339)
 
-	// Run amortization calculation in a goroutine
-	go func() {
-		log.Printf("Starting amortization calculation for loan %s", newCF.ID)
-		amortTable := amortization.GetAmortizationTable(loanInfo)
+	// Process each loan in a separate goroutine
+	for _, newCF := range newCFs {
+		go func(loan mortgagePool) {
+			workerPool <- struct{}{}        // Acquire worker
+			defer func() { <-workerPool }() // Release worker
 
-		// Save to JSON file
-		responseData := gin.H{
-			"mortgage":    newCF,
-			"local_date":  localNow,
-			"amort_table": amortTable,
-		}
+			log.Printf("Starting amortization calculation for loan %s", loan.ID)
 
-		filename := "cashflow_" + newCF.ID + "_" + time.Now().Format("20060102_150405") + ".json"
-		file, err := os.Create(filename)
-		if err != nil {
-			log.Printf("Error creating file: %v", err)
-		} else {
+			loanInfo := &amortization.LoanInfo{
+				ID:   loan.ID,
+				Wam:  int64(loan.WAM),
+				Wac:  loan.WAC,
+				Face: loan.FACE,
+			}
+
+			amortTable := amortization.GetAmortizationTable(loanInfo)
+
+			// Save to JSON file
+			responseData := gin.H{
+				"mortgage":    loan,
+				"local_date":  localNow,
+				"amort_table": amortTable,
+			}
+
+			filename := "output/cashflow_" + loan.ID + "_" + time.Now().Format("20060102_150405") + ".json"
+
+			// Create output directory if it doesn't exist
+			os.MkdirAll("output", 0755)
+
+			file, err := os.Create(filename)
+			if err != nil {
+				log.Printf("Error creating file: %v", err)
+				return
+			}
 			defer file.Close()
+
 			encoder := json.NewEncoder(file)
 			encoder.SetIndent("", "  ")
 			if err := encoder.Encode(responseData); err != nil {
@@ -82,14 +104,14 @@ func requestCashflow(c *gin.Context) {
 			} else {
 				log.Printf("Cashflow data saved to: %s", filename)
 			}
-		}
-		log.Printf("Completed amortization calculation for loan %s", newCF.ID)
-	}()
+			log.Printf("Completed amortization calculation for loan %s", loan.ID)
+		}(newCF) // Pass loan as parameter to avoid closure issues
+	}
 
-	// Return immediate response without waiting for amortization
-	c.IndentedJSON(http.StatusAccepted, gin.H{
-		"message":    "Loan received, amortization calculation started",
-		"mortgage":   newCF,
+	// Return immediate response
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":    fmt.Sprintf("Received %d loans, amortization calculations started", len(newCFs)),
+		"loan_count": len(newCFs),
 		"local_date": localNow,
 	})
 }
