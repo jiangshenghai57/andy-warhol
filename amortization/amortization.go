@@ -31,6 +31,26 @@ type LoanInfo struct {
 	StaticDQ   bool              // If true amortization uses a roll rate matrix
 }
 
+type RollRateTransitionMatrix struct {
+	// Define the structure for the roll rate matrix
+	// [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+	// should sum up to 1.0, and each element represents the transition probability
+	// from one delinquency status to another.
+	// For example, if the performing transformation is [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
+	// it means there is a 92% chance that a performing loan will remain performing,
+	// and a 1% chance it will transition to each of the delinquent statuses.
+	// Length of the array should be equal to the number of delinquency statuses and
+	// RollRateMatrix struct length
+	PerformingTransition []float64
+	DQ30Transition       []float64
+	DQ60Transition       []float64
+	DQ90Transition       []float64
+	DQ120Transition      []float64
+	DQ150Transition      []float64
+	DQ180Transition      []float64
+	DefaultTransition    []float64
+}
+
 // DelinqArrays contains delinquency performance arrays for different time periods.
 // These arrays track loan performance across various delinquency buckets.
 type DelinqArrays struct {
@@ -165,10 +185,11 @@ func GetAmortizationTable(l *LoanInfo) AmortizationTable {
 
 // true up the last period's ending balance in principal amount, prepay, and endBal
 
-func (a *LoanInfo.AmortizationTable) TrueUpBalances() {
+func (a *AmortizationTable) TrueUpBalances() {
 
 	lastIndex := len(a.Principal) - 1
 	// Get the last period's values
+	lastBegBal := a.BegBal[lastIndex]
 	lastPrincipal := a.Principal[lastIndex]
 	lastPrepay := a.PrepayArr[lastIndex]
 	lastEndBal := a.EndBal[lastIndex]
