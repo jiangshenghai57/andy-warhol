@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Create JSON array with mortgage objects
-data=""
-for i in {1..10}
+data="[]"
+for i in {1..1}
 do
   wac=$(echo "scale=2; 3.0 + ($i % 50) * 0.1" | bc)
   wam=$((60 + ($i % 3) * 90))
@@ -21,7 +21,7 @@ do
     data="$data,"
   fi
 done
-data="$data"  # Close the JSON array
+data="$data]"  # Close the JSON array
 
 curl http://localhost:8080/loans \
     --include \

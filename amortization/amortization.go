@@ -26,7 +26,7 @@ type LoanInfo struct {
 	Wam        int64             // Weighted Average Maturity in months
 	Wac        float64           // Weighted Average Coupon rate per annum in percentage points (e.g., 6.75)
 	Face       float64           // Mortgage notional/principal amount
-	Prepay     []float64         // Prepayment amounts by period
+	PrepayCPR  []float64         // prepay CPR in decimals, could be SMM
 	AmortTable AmortizationTable // Associated amortization table
 	StaticDQ   bool              // If true amortization uses a roll rate matrix
 }
@@ -67,20 +67,21 @@ type DelinqArrays struct {
 // AmortizationTable represents a complete loan amortization schedule.
 // It contains all payment components and balances for each period of the loan.
 type AmortizationTable struct {
-	BegBal       []float64    // Beginning balance for each period
-	Interest     []float64    // Interest payment for each period
-	Principal    []float64    // Principal payment for each period
-	SchedBal     []float64    // Scheduled balance after payment
-	PrepayArr    []float64    // Prepayment amount for each period
-	EndBal       []float64    // Ending balance for each period
-	Period       []int        // Period numbers (1, 2, 3, ...)
-	DelinqArrays DelinqArrays // Delinquency performance arrays
+	BegBal          []float64    // Beginning balance for each period
+	Interest        []float64    // Interest payment for each period
+	Principal       []float64    // Principal payment for each period
+	SchedBal        []float64    // Scheduled balance after payment
+	PrepayAmountArr []float64    // Prepayment amount for each period
+	EndBal          []float64    // Ending balance for each period
+	Period          []int        // Period numbers (1, 2, 3, ...)
+	DelinqArrays    DelinqArrays // Delinquency performance arrays
 }
 
 // if LoanInfo.Prepay on has only one element, extend the prepay array to
 // match the loan term
 func ExtendPrepayArr(l *LoanInfo) {
 	if len(l.Prepay) == 1 {
+		smm = []float64{1 + math.Pow(1-l.Prepay[0], 1.0/12.0)}
 		l.Prepay = append(l.Prepay, make([]float64, l.Wam-1)...)
 	}
 }
@@ -171,14 +172,16 @@ func GetAmortizationTable(l *LoanInfo) AmortizationTable {
 
 	// Construct and return the complete amortization table
 	amortTable := AmortizationTable{
-		Period:    periods,
-		BegBal:    begBal,
-		SchedBal:  schedBal,
-		PrepayArr: prepayAmountArr,
-		Interest:  interest,
-		Principal: principal,
-		EndBal:    endBal,
+		Period:          periods,
+		BegBal:          begBal,
+		SchedBal:        schedBal,
+		PrepayAmountArr: prepayAmountArr,
+		Interest:        interest,
+		Principal:       principal,
+		EndBal:          endBal,
 	}
+
+	amortTable.TrueUpBalances()
 
 	return amortTable
 }
@@ -191,17 +194,19 @@ func (a *AmortizationTable) TrueUpBalances() {
 	// Get the last period's values
 	lastBegBal := a.BegBal[lastIndex]
 	lastPrincipal := a.Principal[lastIndex]
-	lastPrepay := a.PrepayArr[lastIndex]
+	lastPrepay := a.PrepayAmountArr[lastIndex]
 	lastEndBal := a.EndBal[lastIndex]
 
-	if len(a.Principal) == 0 {
+	leftOver := lastBegBal - lastPrincipal - lastPrepay
+
+	if leftOver == lastEndBal {
 		return
 	}
 
-	// True up the last period's ending balance
-	a.EndBal[lastIndex] = lastPrincipal + lastPrepay
+	if leftOver < 0 {
+		a.Principal[lastIndex] = lastPrincipal + leftOver
+	}
 
 	// Ensure all values are consistent
 	a.Principal[lastIndex] = lastPrincipal
-	a.PrepayArr[lastIndex] = lastPrepay
 }
