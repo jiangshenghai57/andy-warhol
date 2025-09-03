@@ -16,17 +16,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type mortgagePool struct {
-	ID       string    `json:"id"`
-	WAC      float64   `json:"wac"`
-	WAM      int       `json:"wam"`
-	FACE     float64   `json:"face"`
-	Prepay   []float64 `json:"prepay"`
-	StaticDQ bool      `json:"staticdq"`
-}
-
 var (
-	mortgages  = []mortgagePool{}
+	mortgages  = []amortization.LoanInfo{}
 	mu         sync.RWMutex // Protect the mortgages slice
 	workerPool = make(chan struct{}, 100)
 )
@@ -40,7 +31,7 @@ func getLoans(c *gin.Context) {
 func requestCashflow(c *gin.Context) {
 	log.Println("requestCashflow endpoint was hit")
 
-	var newCFs []mortgagePool // Change to slice to accept multiple loans
+	var newCFs []amortization.LoanInfo // Change to slice to accept multiple loans
 
 	if err := c.BindJSON(&newCFs); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
@@ -63,7 +54,7 @@ func requestCashflow(c *gin.Context) {
 
 	// Process each loan in a separate goroutine
 	for _, newCF := range newCFs {
-		go func(loan mortgagePool) {
+		go func(loan amortization.LoanInfo) {
 			workerPool <- struct{}{}        // Acquire worker
 			defer func() { <-workerPool }() // Release worker
 
@@ -71,12 +62,12 @@ func requestCashflow(c *gin.Context) {
 
 			loanInfo := &amortization.LoanInfo{
 				ID:   loan.ID,
-				Wam:  int64(loan.WAM),
-				Wac:  loan.WAC,
-				Face: loan.FACE,
+				Wam:  int64(loan.Wam),
+				Wac:  loan.Wac,
+				Face: loan.Face,
 			}
 
-			amortTable := amortization.GetAmortizationTable(loanInfo)
+			amortTable := amortization.AmortizationTable()
 
 			// Save to JSON file
 			responseData := gin.H{

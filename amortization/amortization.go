@@ -3,6 +3,7 @@
 package amortization
 
 import (
+	"fmt"
 	"math"
 
 	financial "github.com/razorpay/go-financial"
@@ -30,9 +31,6 @@ type LoanInfo struct {
 	SMMArr     []float64         `json:"smm_arr"`     // SMM array for prepayment calculations
 	AmortTable AmortizationTable `json:"amort_table"` // Associated amortization table
 	StaticDQ   bool              `json:"static_dq"`   // If true amortization uses a roll rate matrix
-}
-
-type RollRateTransitionMatrix struct {
 	// Define the structure for the roll rate matrix
 	// [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
 	// should sum up to 1.0, and each element represents the transition probability
@@ -79,7 +77,7 @@ type AmortizationTable struct {
 }
 
 // ConvertCPRToSMM converts CPR to SMM array for prepayment calculations
-func ConvertCPRToSMM(l *LoanInfo) {
+func (l *LoanInfo) ConvertCPRToSMM() {
 	if l.PrepayCPR != 0.0 && l.SMMArr == nil {
 		// Correct SMM formula: SMM = 1 - (1 - CPR)^(1/12)
 		smm := 1 - math.Pow(1-l.PrepayCPR, 1.0/12.0)
@@ -117,7 +115,7 @@ func ConvertCPRToSMM(l *LoanInfo) {
 //	    Face: 250000.0,   // $250,000 loan
 //	}
 //	table := GetAmortizationTable(loanInfo)
-func GetAmortizationTable(l *LoanInfo) AmortizationTable {
+func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 	// Initialize arrays to store amortization components
 	var periods []int
 	var begBal []float64
@@ -132,7 +130,7 @@ func GetAmortizationTable(l *LoanInfo) AmortizationTable {
 	tmp_face := l.Face
 
 	// Convert CPR to SMM array if necessary
-	ConvertCPRToSMM(l)
+	l.ConvertCPRToSMM()
 
 	// Calculate amortization for each period from WAM down to 1
 	for i := l.Wam; i > 0; i-- {
@@ -224,4 +222,24 @@ func (a *AmortizationTable) TrueUpBalances() {
 		a.Principal[lastIndex] = lastPrincipal + adjustment
 		a.EndBal[lastIndex] = 0.0 // Final balance should be zero
 	}
+}
+
+// Add validation function
+func (l *LoanInfo) Validate() error {
+	if l.ID == "" {
+		return fmt.Errorf("loan ID cannot be empty")
+	}
+	if l.Wam <= 0 || l.Wam > 480 { // Max 40 years
+		return fmt.Errorf("WAM must be between 1 and 480 months, got %d", l.Wam)
+	}
+	if l.Wac < 0 || l.Wac > 30 { // Reasonable rate limits
+		return fmt.Errorf("WAC must be between 0 and 30 percent, got %f", l.Wac)
+	}
+	if l.Face <= 0 {
+		return fmt.Errorf("face value must be positive, got %f", l.Face)
+	}
+	if l.PrepayCPR < 0 || l.PrepayCPR >= 1 {
+		return fmt.Errorf("CPR must be between 0 and 1, got %f", l.PrepayCPR)
+	}
+	return nil
 }
