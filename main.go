@@ -67,7 +67,8 @@ func requestCashflow(c *gin.Context) {
 				Face: loan.Face,
 			}
 
-			amortTable := amortization.AmortizationTable()
+			var pool amortization.MortgagePool = &loanInfo
+			amortTable := pool.GenerateAmortTable() // ✅ Polymorphism works
 
 			// Save to JSON file
 			responseData := gin.H{
