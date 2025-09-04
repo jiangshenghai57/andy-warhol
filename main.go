@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"amortization"
 	"config"
-	amortization "path/to/amortization"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,6 +35,7 @@ func requestCashflow(c *gin.Context) {
 
 	if err := c.BindJSON(&newCFs); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		log.Printf("Error binding JSON: %v", err)
 		return
 	}
 
