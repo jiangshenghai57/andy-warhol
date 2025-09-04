@@ -8,6 +8,8 @@ import (
 
 	financial "github.com/razorpay/go-financial"
 	"github.com/shopspring/decimal"
+
+	"log"
 )
 
 // MortgagePool defines the behavior for generating amortization tables.
@@ -23,14 +25,14 @@ type MortgagePool interface {
 // This structure can be extended in the future to include additional factors
 // such as interest rate adjustments, inflation factors, escrow balances, etc.
 type LoanInfo struct {
-	ID         string            `json:"id"`                    // Unique identifier for the loan
-	Wam        int64             `json:"wam"`                   // Weighted Average Maturity in months
-	Wac        float64           `json:"wac"`                   // Weighted Average Coupon rate per annum in percentage points (e.g., 6.75)
-	Face       float64           `json:"face"`                  // Mortgage notional/principal amount
-	PrepayCPR  float64           `json:"prepay_cpr"`            // prepay CPR in decimals, could be SMM
-	SMMArr     []float64         `json:"smm_arr,omitempty"`     // SMM array for prepayment calculations
-	AmortTable AmortizationTable `json:"amort_table,omitempty"` // Associated amortization table
-	StaticDQ   bool              `json:"static_dq"`             // If true amortization uses a roll rate matrix
+	ID        string    `json:"id"`                // Unique identifier for the loan
+	Wam       int64     `json:"wam"`               // Weighted Average Maturity in months
+	Wac       float64   `json:"wac"`               // Weighted Average Coupon rate per annum in percentage points (e.g., 6.75)
+	Face      float64   `json:"face"`              // Mortgage notional/principal amount
+	PrepayCPR float64   `json:"prepay_cpr"`        // prepay CPR in decimals, could be SMM
+	SMMArr    []float64 `json:"smm_arr,omitempty"` // SMM array for prepayment calculations
+	// AmortTable AmortizationTable `json:"amort_table,omitempty"` // Associated amortization table
+	StaticDQ bool `json:"static_dq"` // If true amortization uses a roll rate matrix
 	// Define the structure for the roll rate matrix
 	// [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
 	// should sum up to 1.0, and each element represents the transition probability
@@ -40,14 +42,14 @@ type LoanInfo struct {
 	// and a 1% chance it will transition to each of the delinquent statuses.
 	// Length of the array should be equal to the number of delinquency statuses and
 	// RollRateMatrix struct length
-	PerformingTransition []float64 `json:"performing_transition,omitempty"`
-	DQ30Transition       []float64 `json:"dq30_transition,omitempty"`
-	DQ60Transition       []float64 `json:"dq60_transition,omitempty"`
-	DQ90Transition       []float64 `json:"dq90_transition,omitempty"`
-	DQ120Transition      []float64 `json:"dq120_transition,omitempty"`
-	DQ150Transition      []float64 `json:"dq150_transition,omitempty"`
-	DQ180Transition      []float64 `json:"dq180_transition,omitempty"`
-	DefaultTransition    []float64 `json:"default_transition,omitempty"`
+	// PerformingTransition []float64 `json:"performing_transition,omitempty"`
+	// DQ30Transition       []float64 `json:"dq30_transition,omitempty"`
+	// DQ60Transition       []float64 `json:"dq60_transition,omitempty"`
+	// DQ90Transition       []float64 `json:"dq90_transition,omitempty"`
+	// DQ120Transition      []float64 `json:"dq120_transition,omitempty"`
+	// DQ150Transition      []float64 `json:"dq150_transition,omitempty"`
+	// DQ180Transition      []float64 `json:"dq180_transition,omitempty"`
+	// DefaultTransition    []float64 `json:"default_transition,omitempty"`
 }
 
 // DelinqArrays contains delinquency performance arrays for different time periods.
@@ -78,7 +80,8 @@ type AmortizationTable struct {
 
 // ConvertCPRToSMM converts CPR to SMM array for prepayment calculations
 func (l *LoanInfo) ConvertCPRToSMM() {
-	if l.PrepayCPR != 0.0 && l.SMMArr == nil {
+	if l.PrepayCPR != 0.0 {
+		log.Println("Converting CPR to SMM array for loan:", l.ID)
 		// Correct SMM formula: SMM = 1 - (1 - CPR)^(1/12)
 		smm := 1 - math.Pow(1-l.PrepayCPR, 1.0/12.0)
 

@@ -17,14 +17,21 @@ do
 
   prepay_cpr=$(echo "scale=4; 0.02 + ($i % 5) * 0.01" | bc)
 
+  if [[ $prepay_cpr =~ ^\. ]]; then
+    prepay_cpr="0$prepay_cpr"
+  fi
+
   # FIX: Put entire JSON object on one line
-  data="$data{\"id\": \"$i\", \"wac\": $wac, \"wam\": $wam, \"face\": $face, \"staticdq\": $staticdq_str, \"prepay_cpr\": $prepay_cpr}"
+  data="$data{\"id\": \"$i\", \"wac\": $wac, \"wam\": $wam, \"face\": $face, \"static_dq\": $staticdq_str, \"prepay_cpr\": $prepay_cpr}"
 
   if [ $i -lt 1 ]; then  # Fixed: should be 1, not 1000 since loop is 1..1
-    data="$data,"
+    data="$data"
   fi
 done
 data="$data]"
+
+echo "$data" | python3 -c "import json,sys; json.load(sys.stdin); print('✅ JSON is valid')" 2>/dev/null || echo "❌ JSON is invalid"
+
 
 echo "Data to be sent: $data"
 
@@ -32,6 +39,5 @@ echo "Data to be sent: $data"
 curl http://localhost:8080/loans \
     --include \
     --header "Content-Type: application/json" \
-    --request "POST" \
     --data "$data" \
     --verbose
