@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"amortization"
 	"config"
+	amortization "path/to/amortization"
 
 	"github.com/gin-gonic/gin"
 )
@@ -67,8 +67,7 @@ func requestCashflow(c *gin.Context) {
 				Face: loan.Face,
 			}
 
-			var pool amortization.MortgagePool = &loanInfo
-			amortTable := pool.GenerateAmortTable() // ✅ Polymorphism works
+			amortTable := loanInfo.GetAmortizationTable() // Call method on LoanInfo if GenerateAmortTable is a method
 
 			// Save to JSON file
 			responseData := gin.H{
