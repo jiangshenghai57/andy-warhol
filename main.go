@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
 	"amortization"
 	"config"
@@ -31,80 +29,46 @@ func getLoans(c *gin.Context) {
 func requestCashflow(c *gin.Context) {
 	log.Println("requestCashflow endpoint was hit")
 
-	var newCFs []amortization.LoanInfo // Change to slice to accept multiple loans
+	var loans []amortization.LoanInfo
 
-	if err := c.BindJSON(&newCFs); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-		log.Printf("Error binding JSON: %v", err)
+	// Parse JSON
+	if err := c.BindJSON(&loans); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	log.Printf("Received %d loans for processing", len(newCFs))
+	log.Printf("Received %d loans for processing", len(loans))
+
+	// Validate and calculate
+	results := make([]gin.H, len(loans))
+	for i, loan := range loans {
+		// Validate loan
+		if err := loan.Validate(); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Loan %d validation failed: %s", i, err.Error()),
+			})
+			return
+		}
+
+		// Calculate amortization table
+		amortTable := loan.GetAmortizationTable()
+
+		// Store result
+		results[i] = gin.H{
+			"loan_id":  loan.ID,
+			"cashflow": amortTable,
+		}
+	}
 
 	// Thread-safe append to mortgages
 	mu.Lock()
-	mortgages = append(mortgages, newCFs...)
+	mortgages = append(mortgages, loans...)
 	mu.Unlock()
 
-	// Get current local time zone date
-	loc, err := time.LoadLocation("America/New_York")
-	if err != nil {
-		loc = time.Local
-	}
-	localNow := time.Now().In(loc).Format(time.RFC3339)
-
-	// Process each loan in a separate goroutine
-	for _, newCF := range newCFs {
-		go func(loan amortization.LoanInfo) {
-			workerPool <- struct{}{}        // Acquire worker
-			defer func() { <-workerPool }() // Release worker
-
-			log.Printf("Starting amortization calculation for loan %s", loan.ID)
-
-			loanInfo := &amortization.LoanInfo{
-				ID:   loan.ID,
-				Wam:  int64(loan.Wam),
-				Wac:  loan.Wac,
-				Face: loan.Face,
-			}
-
-			amortTable := loanInfo.GetAmortizationTable() // Call method on LoanInfo if GenerateAmortTable is a method
-
-			// Save to JSON file
-			responseData := gin.H{
-				"mortgage":    loan,
-				"local_date":  localNow,
-				"amort_table": amortTable,
-			}
-
-			filename := "output/cashflow_" + loan.ID + "_" + time.Now().Format("20060102_150405") + ".json"
-
-			// Create output directory if it doesn't exist
-			os.MkdirAll("output", 0755)
-
-			file, err := os.Create(filename)
-			if err != nil {
-				log.Printf("Error creating file: %v", err)
-				return
-			}
-			defer file.Close()
-
-			encoder := json.NewEncoder(file)
-			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(responseData); err != nil {
-				log.Printf("Error writing JSON: %v", err)
-			} else {
-				log.Printf("Cashflow data saved to: %s", filename)
-			}
-			log.Printf("Completed amortization calculation for loan %s", loan.ID)
-		}(newCF) // Pass loan as parameter to avoid closure issues
-	}
-
-	// Return immediate response
-	c.JSON(http.StatusAccepted, gin.H{
-		"message":    fmt.Sprintf("Received %d loans, amortization calculations started", len(newCFs)),
-		"loan_count": len(newCFs),
-		"local_date": localNow,
+	// Return results
+	c.JSON(http.StatusOK, gin.H{
+		"count":   len(loans),
+		"results": results,
 	})
 }
 

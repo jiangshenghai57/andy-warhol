@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"math"
 
-	financial "github.com/razorpay/go-financial"
-	"github.com/shopspring/decimal"
-
 	"log"
 )
 
@@ -31,8 +28,8 @@ type LoanInfo struct {
 	Face      float64   `json:"face"`              // Mortgage notional/principal amount
 	PrepayCPR float64   `json:"prepay_cpr"`        // prepay CPR in decimals, could be SMM
 	SMMArr    []float64 `json:"smm_arr,omitempty"` // SMM array for prepayment calculations
+	StaticDQ  bool      `json:"static_dq"`         // If true amortization uses a roll rate matrix
 	// AmortTable AmortizationTable `json:"amort_table,omitempty"` // Associated amortization table
-	StaticDQ bool `json:"static_dq"` // If true amortization uses a roll rate matrix
 	// Define the structure for the roll rate matrix
 	// [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
 	// should sum up to 1.0, and each element represents the transition probability
@@ -42,14 +39,14 @@ type LoanInfo struct {
 	// and a 1% chance it will transition to each of the delinquent statuses.
 	// Length of the array should be equal to the number of delinquency statuses and
 	// RollRateMatrix struct length
-	// PerformingTransition []float64 `json:"performing_transition,omitempty"`
-	// DQ30Transition       []float64 `json:"dq30_transition,omitempty"`
-	// DQ60Transition       []float64 `json:"dq60_transition,omitempty"`
-	// DQ90Transition       []float64 `json:"dq90_transition,omitempty"`
-	// DQ120Transition      []float64 `json:"dq120_transition,omitempty"`
-	// DQ150Transition      []float64 `json:"dq150_transition,omitempty"`
-	// DQ180Transition      []float64 `json:"dq180_transition,omitempty"`
-	// DefaultTransition    []float64 `json:"default_transition,omitempty"`
+	PerformingTransition []float64 `json:"performing_transition,omitempty"`
+	DQ30Transition       []float64 `json:"dq30_transition,omitempty"`
+	DQ60Transition       []float64 `json:"dq60_transition,omitempty"`
+	DQ90Transition       []float64 `json:"dq90_transition,omitempty"`
+	DQ120Transition      []float64 `json:"dq120_transition,omitempty"`
+	DQ150Transition      []float64 `json:"dq150_transition,omitempty"`
+	DQ180Transition      []float64 `json:"dq180_transition,omitempty"`
+	DefaultTransition    []float64 `json:"default_transition,omitempty"`
 }
 
 // DelinqArrays contains delinquency performance arrays for different time periods.
@@ -119,71 +116,64 @@ func (l *LoanInfo) ConvertCPRToSMM() {
 //	}
 //	table := GetAmortizationTable(loanInfo)
 func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
-	// Initialize arrays to store amortization components
-	var periods []int
-	var begBal []float64
-	var schedBal []float64
-	var endBal []float64
-	var prepayAmountArr []float64
-	var interest []float64
-	var principal []float64
+	// 🟢 PRE-ALLOCATE: Avoid dynamic slice growth
+	numPeriods := int(l.Wam)
+	periods := make([]int, numPeriods)
+	begBal := make([]float64, numPeriods)
+	schedBal := make([]float64, numPeriods)
+	endBal := make([]float64, numPeriods)
+	prepayAmountArr := make([]float64, numPeriods)
+	interest := make([]float64, numPeriods)
+	principal := make([]float64, numPeriods)
 
-	// Initialize counters and working variables
-	j := 0
-	tmp_face := l.Face
+	// 🟢 PRE-CALCULATE: Move expensive calculations outside loop
+	monthlyRate := l.Wac / 12.0 / 100.0
 
-	// Convert CPR to SMM array if necessary
+	// 🟢 PRE-CALCULATE: SMM conversion once
 	l.ConvertCPRToSMM()
 
-	// Calculate amortization for each period from WAM down to 1
-	for i := l.Wam; i > 0; i-- {
-		j += 1
+	// 🟢 OPTIMIZED: Use simple payment calculation instead of PPmt
+	monthlyPayment := calculateMonthlyPayment(l.Face, monthlyRate, float64(l.Wam))
 
-		// Store period number
-		periods = append(periods, j)
+	tmp_face := l.Face
 
-		// Calculate and store beginning balance (rounded to 2 decimal places)
-		begBal = append(begBal, math.Round(tmp_face*100)/100)
+	// 🟢 OPTIMIZED: Single loop with pre-allocated slices
+	for j := 0; j < numPeriods; j++ {
+		i := l.Wam - int64(j) // Remaining periods
 
-		// Calculate monthly interest payment
-		// Formula: Principal * (Annual Rate / 12) / 100
-		interest = append(interest, math.Round(tmp_face*l.Wac/12)/100)
+		periods[j] = j + 1
+		begBal[j] = roundToCent(tmp_face)
 
-		// Calculate principal payment using financial library
-		// PPmt calculates principal payment for a given period
-		prinPmt, _ := financial.PPmt(
-			decimal.NewFromFloat(l.Wac/12/100), // Monthly interest rate as decimal
-			i,                                  // Current period (remaining periods)
-			l.Wam,                              // Total loan term
-			decimal.NewFromFloat(-l.Face),      // Present value (negative for payment calculation)
-			decimal.NewFromFloat(0.0),          // Future value (loan fully paid)
-			0,                                  // Payment timing (0 = end of period)
-		).Float64()
+		// 🟢 FAST: Simple multiplication instead of expensive PPmt
+		interestPayment := tmp_face * monthlyRate
+		interest[j] = roundToCent(interestPayment)
 
-		// Store principal payment (rounded to 2 decimal places)
-		principal = append(principal, math.Round(prinPmt*100)/100)
+		// Calculate principal using standard formula
+		var principalPayment float64
+		if i == 1 {
+			// Final payment: all remaining balance
+			principalPayment = tmp_face
+		} else {
+			principalPayment = monthlyPayment - interestPayment
+		}
+		principal[j] = roundToCent(principalPayment)
 
-		// Calculate scheduled balance after principal payment
-		currentSchedBal := math.Round((tmp_face-prinPmt)*100) / 100
-		schedBal = append(schedBal, currentSchedBal)
+		currentSchedBal := tmp_face - principalPayment
+		schedBal[j] = roundToCent(currentSchedBal)
 
-		// Calculate prepayment using SMM array
-		prepayAmount := math.Round(l.SMMArr[j-1]*currentSchedBal*100) / 100
-		prepayAmountArr = append(prepayAmountArr, prepayAmount)
+		// Calculate prepayment
+		prepayAmount := l.SMMArr[j] * currentSchedBal
+		prepayAmountArr[j] = roundToCent(prepayAmount)
 
-		// Reduce remaining balance by principal payment and prepayment
-		tmp_face = tmp_face - float64(prinPmt) - prepayAmount
-
-		// Ensure balance doesn't go negative
+		// Update remaining balance
+		tmp_face = currentSchedBal - prepayAmount
 		if tmp_face < 0.0 {
-			tmp_face = 0
+			tmp_face = 0.0
 		}
 
-		// Store ending balance (rounded to 2 decimal places)
-		endBal = append(endBal, math.Round(tmp_face*100)/100)
+		endBal[j] = roundToCent(tmp_face)
 	}
 
-	// Construct and return the complete amortization table
 	amortTable := AmortizationTable{
 		Period:          periods,
 		BegBal:          begBal,
@@ -192,12 +182,25 @@ func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 		Interest:        interest,
 		Principal:       principal,
 		EndBal:          endBal,
-		DelinqArrays:    DelinqArrays{}, // Initialize with empty arrays
+		DelinqArrays:    DelinqArrays{},
 	}
 
-	amortTable.TrueUpBalances()
-
 	return amortTable
+}
+
+// 🟢 FAST: Inline rounding function
+func roundToCent(value float64) float64 {
+	return math.Round(value*100) / 100
+}
+
+// 🟢 FAST: Standard monthly payment calculation
+func calculateMonthlyPayment(principal, monthlyRate float64, numPayments float64) float64 {
+	if monthlyRate == 0 {
+		return principal / numPayments
+	}
+
+	factor := math.Pow(1+monthlyRate, numPayments)
+	return principal * (monthlyRate * factor) / (factor - 1)
 }
 
 // TrueUpBalances adjusts the final period's balances to ensure mathematical consistency
