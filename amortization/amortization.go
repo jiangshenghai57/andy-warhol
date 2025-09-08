@@ -129,14 +129,14 @@ func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 	interest := make([]float64, numPeriods)
 	principal := make([]float64, numPeriods)
 
-	perfArray := make([]float64, numPeriods)
-	dq30Array := make([]float64, numPeriods)
-	dq60Array := make([]float64, numPeriods)
-	dq90Array := make([]float64, numPeriods)
-	dq120Array := make([]float64, numPeriods)
-	dq150Array := make([]float64, numPeriods)
-	dq180Array := make([]float64, numPeriods)
-	defaultArray := make([]float64, numPeriods)
+	// perfArray := make([]float64, numPeriods)
+	// dq30Array := make([]float64, numPeriods)
+	// dq60Array := make([]float64, numPeriods)
+	// dq90Array := make([]float64, numPeriods)
+	// dq120Array := make([]float64, numPeriods)
+	// dq150Array := make([]float64, numPeriods)
+	// dq180Array := make([]float64, numPeriods)
+	// defaultArray := make([]float64, numPeriods)
 
 	// 🟢 PRE-CALCULATE: Move expensive calculations outside loop
 	monthlyRate := l.Wac / 12.0 / 100.0
@@ -149,7 +149,7 @@ func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 
 	tmp_face := l.Face
 
-	initTransition := []float64{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+	// initTransition := []float64{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 
 	// 🟢 OPTIMIZED: Single loop with pre-allocated slices
 	for j := 0; j < numPeriods; j++ {
