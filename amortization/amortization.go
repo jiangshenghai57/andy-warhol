@@ -37,6 +37,9 @@ type LoanInfo struct {
 	// For example, if the performing transformation is [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
 	// it means there is a 92% chance that a performing loan will remain performing,
 	// and a 1% chance it will transition to each of the delinquent statuses.
+	// DQ30Transition represents the transition probabilities for loans that are 30 days delinquent.
+	// [0.90, 0.03, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+	// 90% change to performing, 3% stay at 30-day delinquent, and so on.
 	// Length of the array should be equal to the number of delinquency statuses and
 	// RollRateMatrix struct length
 	PerformingTransition []float64 `json:"performing_transition,omitempty"`
