@@ -43,3 +43,6 @@ andy-warhol
 
 # cashflow test files
 cashflow_*.json
+
+response.json
+loans_payload.json
