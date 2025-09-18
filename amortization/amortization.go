@@ -150,6 +150,7 @@ func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 	tmp_face := l.Face
 
 	// initTransition := []float64{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+	initTransition := make([]float64, 8)
 
 	// 🟢 OPTIMIZED: Single loop with pre-allocated slices
 	for j := 0; j < numPeriods; j++ {
@@ -200,6 +201,18 @@ func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 	}
 
 	return amortTable
+}
+
+func computerRollRate(
+	curTransition, perfTransition, dq30Transition, dq60Transition, dq90Transition,
+	dq120Transition, dq150Transition, dq180Transition, defaultTransition []float64,
+) []float64 {
+	// Compute roll rates based on transition matrices
+	rollRates := make([]float64, 8)
+	for i := 0; i < 8; i++ {
+		rollRates[i] = curTransition[i] * perfTransition[i]
+	}
+	return rollRates
 }
 
 // 🟢 FAST: Inline rounding function

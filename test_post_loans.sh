@@ -17,7 +17,7 @@ do
 
   prepay_cpr=$(echo "scale=4; 0.02 + ($i % 5) * 0.01" | bc)
 
-  if [[ $prepay_cpr =~ ^\. ]]; then
+  if [[ $prepay_cpr =~ ^\0. ]]; then
     prepay_cpr="0$prepay_cpr"
   fi
 
