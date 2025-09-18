@@ -149,8 +149,10 @@ func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
 
 	tmp_face := l.Face
 
+	transitionArrLen := 8
+
 	// initTransition := []float64{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-	initTransition := make([]float64, 8)
+	initTransition := make([]float64, transitionArrLen)
 
 	// 🟢 OPTIMIZED: Single loop with pre-allocated slices
 	for j := 0; j < numPeriods; j++ {
