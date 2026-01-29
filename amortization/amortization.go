@@ -22,13 +22,19 @@ type MortgagePool interface {
 // This structure can be extended in the future to include additional factors
 // such as interest rate adjustments, inflation factors, escrow balances, etc.
 type LoanInfo struct {
-	ID        string    `json:"id"`                // Unique identifier for the loan
-	Wam       int64     `json:"wam"`               // Weighted Average Maturity in months
-	Wac       float64   `json:"wac"`               // Weighted Average Coupon rate per annum in percentage points (e.g., 6.75)
-	Face      float64   `json:"face"`              // Mortgage notional/principal amount
+	ID   string  `json:"id"`   // Unique identifier for the loan
+	Wam  int64   `json:"wam"`  // Weighted Average Maturity in months
+	Wac  float64 `json:"wac"`  // Weighted Average Coupon rate per annum in percentage points (e.g., 6.75)
+	Face float64 `json:"face"` // Mortgage notional/principal amount
+}
+
+type PrepayInfo struct {
 	PrepayCPR float64   `json:"prepay_cpr"`        // prepay CPR in decimals, could be SMM
 	SMMArr    []float64 `json:"smm_arr,omitempty"` // SMM array for prepayment calculations
-	StaticDQ  bool      `json:"static_dq"`         // If true amortization uses a roll rate matrix
+}
+
+type DelinquencyInfo struct {
+	StaticDQ bool `json:"static_dq"` // If true amortization uses a roll rate matrix
 	// AmortTable AmortizationTable `json:"amort_table,omitempty"` // Associated amortization table
 	// Define the structure for the roll rate matrix
 	// [0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
