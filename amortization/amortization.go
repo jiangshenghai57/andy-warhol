@@ -85,11 +85,11 @@ type AmortizationTable struct {
 }
 
 // ConvertCPRToSMM converts CPR to SMM array for prepayment calculations
-func (l *LoanInfo) ConvertCPRToSMM() {
-	if l.PrepayCPR != 0.0 {
+func (l *LoanInfo, p *PrepayInfo) ConvertCPRToSMM() {
+	if p.PrepayCPR != 0.0 {
 		log.Println("Converting CPR to SMM array for loan:", l.ID)
 		// Correct SMM formula: SMM = 1 - (1 - CPR)^(1/12)
-		smm := 1 - math.Pow(1-l.PrepayCPR, 1.0/12.0)
+		smm := 1 - math.Pow(1-p.PrepayCPR, 1.0/12.0)
 
 		// Create SMM array with same value for all periods
 		l.SMMArr = make([]float64, l.Wam)
