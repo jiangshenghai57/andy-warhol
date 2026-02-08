@@ -1,11 +1,12 @@
 module github.com/jiangshenghai57/andy-warhol
 
-go 1.22.0
+go 1.25.1
 
 require (
 	amortization v0.0.0-00010101000000-000000000000
 	config v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.10.1
+	internal v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -42,3 +43,5 @@ require (
 replace config => ./config
 
 replace amortization => ./amortization
+
+replace internal => ./internal
