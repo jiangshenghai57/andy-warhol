@@ -66,8 +66,8 @@ Like the artist who mass-produced art with precision and speed, this engine mass
 │                    │   (Concurrent Processing)   │           │
 │                    └─────────────┬───────────────┘           │
 │                                  │                           │
-│          ┌───────────────────────┼───────────────────────┐   │
-│          ▼                       ▼                       ▼   │
+│          ┌───────────────────────┼───────────────────┐       │
+│          ▼                       ▼                   ▼       │
 │  ┌───────────────┐      ┌───────────────┐      ┌───────────-┐│
 │  │   Loan 1      │      │   Loan 2      │      │  Loan N    ││
 │  │ Amortization  │      │ Amortization  │      │Amortization││
