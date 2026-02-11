@@ -13,7 +13,11 @@ import (
 type MortgagePool interface {
 	// GenerateAmortTable creates an amortization table for the mortgage pool.
 	GenerateAmortTable() AmortizationTable
+
+	// Convert CPR to SMM arrays
 	ConvertCPRToSMM() []float64
+
+	// True up the balances for amortization table
 	TrueUpBalances()
 }
 
