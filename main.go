@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jiangshenghai57/andy-warhol/amortization"
-	"github.com/jiangshenghai57/andy-warhol/internal/config"
+	"github.com/jiangshenghai57/andy-warhol/config"
 )
 
 var (

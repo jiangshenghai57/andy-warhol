@@ -3,7 +3,6 @@
 package amortization
 
 import (
-	"fmt"
 	"math"
 
 	"log"
@@ -124,163 +123,163 @@ func (l *LoanInfo, p *PrepayInfo) ConvertCPRToSMM() {
 //	    Face: 250000.0,   // $250,000 loan
 //	}
 //	table := GetAmortizationTable(loanInfo)
-func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
-	// 🟢 PRE-ALLOCATE: Avoid dynamic slice growth
-	numPeriods := int(l.Wam)
-	periods := make([]int, numPeriods)
-	begBal := make([]float64, numPeriods)
-	schedBal := make([]float64, numPeriods)
-	endBal := make([]float64, numPeriods)
-	prepayAmountArr := make([]float64, numPeriods)
-	interest := make([]float64, numPeriods)
-	principal := make([]float64, numPeriods)
+// func (l *LoanInfo) GetAmortizationTable() AmortizationTable {
+// 	// 🟢 PRE-ALLOCATE: Avoid dynamic slice growth
+// 	numPeriods := int(l.Wam)
+// 	periods := make([]int, numPeriods)
+// 	begBal := make([]float64, numPeriods)
+// 	schedBal := make([]float64, numPeriods)
+// 	endBal := make([]float64, numPeriods)
+// 	prepayAmountArr := make([]float64, numPeriods)
+// 	interest := make([]float64, numPeriods)
+// 	principal := make([]float64, numPeriods)
 
-	// perfArray := make([]float64, numPeriods)
-	// dq30Array := make([]float64, numPeriods)
-	// dq60Array := make([]float64, numPeriods)
-	// dq90Array := make([]float64, numPeriods)
-	// dq120Array := make([]float64, numPeriods)
-	// dq150Array := make([]float64, numPeriods)
-	// dq180Array := make([]float64, numPeriods)
-	// defaultArray := make([]float64, numPeriods)
+// 	// perfArray := make([]float64, numPeriods)
+// 	// dq30Array := make([]float64, numPeriods)
+// 	// dq60Array := make([]float64, numPeriods)
+// 	// dq90Array := make([]float64, numPeriods)
+// 	// dq120Array := make([]float64, numPeriods)
+// 	// dq150Array := make([]float64, numPeriods)
+// 	// dq180Array := make([]float64, numPeriods)
+// 	// defaultArray := make([]float64, numPeriods)
 
-	// 🟢 PRE-CALCULATE: Move expensive calculations outside loop
-	monthlyRate := l.Wac / 12.0 / 100.0
+// 	// 🟢 PRE-CALCULATE: Move expensive calculations outside loop
+// 	monthlyRate := l.Wac / 12.0 / 100.0
 
-	// 🟢 PRE-CALCULATE: SMM conversion once
-	l.ConvertCPRToSMM()
+// 	// 🟢 PRE-CALCULATE: SMM conversion once
+// 	l.ConvertCPRToSMM()
 
-	// 🟢 OPTIMIZED: Use simple payment calculation instead of PPmt
-	monthlyPayment := calculateMonthlyPayment(l.Face, monthlyRate, float64(l.Wam))
+// 	// 🟢 OPTIMIZED: Use simple payment calculation instead of PPmt
+// 	monthlyPayment := calculateMonthlyPayment(l.Face, monthlyRate, float64(l.Wam))
 
-	tmp_face := l.Face
+// 	tmp_face := l.Face
 
-	transitionArrLen := 8
+// 	transitionArrLen := 8
 
-	// initTransition := []float64{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-	initTransition := make([]float64, transitionArrLen)
+// 	// initTransition := []float64{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+// 	initTransition := make([]float64, transitionArrLen)
 
-	// 🟢 OPTIMIZED: Single loop with pre-allocated slices
-	for j := 0; j < numPeriods; j++ {
-		i := l.Wam - int64(j) // Remaining periods
+// 	// 🟢 OPTIMIZED: Single loop with pre-allocated slices
+// 	for j := 0; j < numPeriods; j++ {
+// 		i := l.Wam - int64(j) // Remaining periods
 
-		periods[j] = j + 1
-		begBal[j] = roundToCent(tmp_face)
+// 		periods[j] = j + 1
+// 		begBal[j] = roundToCent(tmp_face)
 
-		// 🟢 FAST: Simple multiplication instead of expensive PPmt
-		interestPayment := tmp_face * monthlyRate
-		interest[j] = roundToCent(interestPayment)
+// 		// 🟢 FAST: Simple multiplication instead of expensive PPmt
+// 		interestPayment := tmp_face * monthlyRate
+// 		interest[j] = roundToCent(interestPayment)
 
-		// Calculate principal using standard formula
-		var principalPayment float64
-		if i == 1 {
-			// Final payment: all remaining balance
-			principalPayment = tmp_face
-		} else {
-			principalPayment = monthlyPayment - interestPayment
-		}
-		principal[j] = roundToCent(principalPayment)
+// 		// Calculate principal using standard formula
+// 		var principalPayment float64
+// 		if i == 1 {
+// 			// Final payment: all remaining balance
+// 			principalPayment = tmp_face
+// 		} else {
+// 			principalPayment = monthlyPayment - interestPayment
+// 		}
+// 		principal[j] = roundToCent(principalPayment)
 
-		currentSchedBal := tmp_face - principalPayment
-		schedBal[j] = roundToCent(currentSchedBal)
+// 		currentSchedBal := tmp_face - principalPayment
+// 		schedBal[j] = roundToCent(currentSchedBal)
 
-		// Calculate prepayment
-		prepayAmount := l.SMMArr[j] * currentSchedBal
-		prepayAmountArr[j] = roundToCent(prepayAmount)
+// 		// Calculate prepayment
+// 		prepayAmount := l.SMMArr[j] * currentSchedBal
+// 		prepayAmountArr[j] = roundToCent(prepayAmount)
 
-		// Update remaining balance
-		tmp_face = currentSchedBal - prepayAmount
-		if tmp_face < 0.0 {
-			tmp_face = 0.0
-		}
+// 		// Update remaining balance
+// 		tmp_face = currentSchedBal - prepayAmount
+// 		if tmp_face < 0.0 {
+// 			tmp_face = 0.0
+// 		}
 
-		endBal[j] = roundToCent(tmp_face)
-	}
+// 		endBal[j] = roundToCent(tmp_face)
+// 	}
 
-	amortTable := AmortizationTable{
-		Period:          periods,
-		BegBal:          begBal,
-		SchedBal:        schedBal,
-		PrepayAmountArr: prepayAmountArr,
-		Interest:        interest,
-		Principal:       principal,
-		EndBal:          endBal,
-		DelinqArrays:    DelinqArrays{},
-	}
+// 	amortTable := AmortizationTable{
+// 		Period:          periods,
+// 		BegBal:          begBal,
+// 		SchedBal:        schedBal,
+// 		PrepayAmountArr: prepayAmountArr,
+// 		Interest:        interest,
+// 		Principal:       principal,
+// 		EndBal:          endBal,
+// 		DelinqArrays:    DelinqArrays{},
+// 	}
 
-	return amortTable
-}
+// 	return amortTable
+// }
 
-func computerRollRate(
-	curTransition, perfTransition, dq30Transition, dq60Transition, dq90Transition,
-	dq120Transition, dq150Transition, dq180Transition, defaultTransition []float64,
-) []float64 {
-	// Compute roll rates based on transition matrices
-	rollRates := make([]float64, 8)
-	for i := 0; i < 8; i++ {
-		rollRates[i] = curTransition[i] * perfTransition[i]
-	}
-	return rollRates
-}
+// func computerRollRate(
+// 	curTransition, perfTransition, dq30Transition, dq60Transition, dq90Transition,
+// 	dq120Transition, dq150Transition, dq180Transition, defaultTransition []float64,
+// ) []float64 {
+// 	// Compute roll rates based on transition matrices
+// 	rollRates := make([]float64, 8)
+// 	for i := 0; i < 8; i++ {
+// 		rollRates[i] = curTransition[i] * perfTransition[i]
+// 	}
+// 	return rollRates
+// }
 
-// 🟢 FAST: Inline rounding function
-func roundToCent(value float64) float64 {
-	return math.Round(value*100) / 100
-}
+// // 🟢 FAST: Inline rounding function
+// func roundToCent(value float64) float64 {
+// 	return math.Round(value*100) / 100
+// }
 
-// 🟢 FAST: Standard monthly payment calculation
-func calculateMonthlyPayment(principal, monthlyRate float64, numPayments float64) float64 {
-	if monthlyRate == 0 {
-		return principal / numPayments
-	}
+// // 🟢 FAST: Standard monthly payment calculation
+// func calculateMonthlyPayment(principal, monthlyRate float64, numPayments float64) float64 {
+// 	if monthlyRate == 0 {
+// 		return principal / numPayments
+// 	}
 
-	factor := math.Pow(1+monthlyRate, numPayments)
-	return principal * (monthlyRate * factor) / (factor - 1)
-}
+// 	factor := math.Pow(1+monthlyRate, numPayments)
+// 	return principal * (monthlyRate * factor) / (factor - 1)
+// }
 
-// TrueUpBalances adjusts the final period's balances to ensure mathematical consistency
-func (a *AmortizationTable) TrueUpBalances() {
-	if len(a.Principal) == 0 {
-		return
-	}
+// // TrueUpBalances adjusts the final period's balances to ensure mathematical consistency
+// func (a *AmortizationTable) TrueUpBalances() {
+// 	if len(a.Principal) == 0 {
+// 		return
+// 	}
 
-	lastIndex := len(a.Principal) - 1
-	// Get the last period's values
-	lastBegBal := a.BegBal[lastIndex]
-	lastPrincipal := a.Principal[lastIndex]
-	lastPrepay := a.PrepayAmountArr[lastIndex]
-	lastEndBal := a.EndBal[lastIndex]
+// 	lastIndex := len(a.Principal) - 1
+// 	// Get the last period's values
+// 	lastBegBal := a.BegBal[lastIndex]
+// 	lastPrincipal := a.Principal[lastIndex]
+// 	lastPrepay := a.PrepayAmountArr[lastIndex]
+// 	lastEndBal := a.EndBal[lastIndex]
 
-	leftOver := lastBegBal - lastPrincipal - lastPrepay
+// 	leftOver := lastBegBal - lastPrincipal - lastPrepay
 
-	if math.Abs(leftOver-lastEndBal) < 0.01 {
-		return // Already balanced within rounding tolerance
-	}
+// 	if math.Abs(leftOver-lastEndBal) < 0.01 {
+// 		return // Already balanced within rounding tolerance
+// 	}
 
-	// Adjust the final principal payment to balance
-	if leftOver != lastEndBal {
-		adjustment := leftOver - lastEndBal
-		a.Principal[lastIndex] = lastPrincipal + adjustment
-		a.EndBal[lastIndex] = 0.0 // Final balance should be zero
-	}
-}
+// 	// Adjust the final principal payment to balance
+// 	if leftOver != lastEndBal {
+// 		adjustment := leftOver - lastEndBal
+// 		a.Principal[lastIndex] = lastPrincipal + adjustment
+// 		a.EndBal[lastIndex] = 0.0 // Final balance should be zero
+// 	}
+// }
 
-// Add validation function
-func (l *LoanInfo) Validate() error {
-	if l.ID == "" {
-		return fmt.Errorf("loan ID cannot be empty")
-	}
-	if l.Wam <= 0 || l.Wam > 480 { // Max 40 years
-		return fmt.Errorf("WAM must be between 1 and 480 months, got %d", l.Wam)
-	}
-	if l.Wac < 0 || l.Wac > 30 { // Reasonable rate limits
-		return fmt.Errorf("WAC must be between 0 and 30 percent, got %f", l.Wac)
-	}
-	if l.Face <= 0 {
-		return fmt.Errorf("face value must be positive, got %f", l.Face)
-	}
-	if l.PrepayCPR < 0 || l.PrepayCPR >= 1 {
-		return fmt.Errorf("CPR must be between 0 and 1, got %f", l.PrepayCPR)
-	}
-	return nil
-}
+// // Add validation function
+// func (l *LoanInfo) Validate() error {
+// 	if l.ID == "" {
+// 		return fmt.Errorf("loan ID cannot be empty")
+// 	}
+// 	if l.Wam <= 0 || l.Wam > 480 { // Max 40 years
+// 		return fmt.Errorf("WAM must be between 1 and 480 months, got %d", l.Wam)
+// 	}
+// 	if l.Wac < 0 || l.Wac > 30 { // Reasonable rate limits
+// 		return fmt.Errorf("WAC must be between 0 and 30 percent, got %f", l.Wac)
+// 	}
+// 	if l.Face <= 0 {
+// 		return fmt.Errorf("face value must be positive, got %f", l.Face)
+// 	}
+// 	if l.PrepayCPR < 0 || l.PrepayCPR >= 1 {
+// 		return fmt.Errorf("CPR must be between 0 and 1, got %f", l.PrepayCPR)
+// 	}
+// 	return nil
+// }
