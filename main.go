@@ -8,10 +8,9 @@ import (
 	"os"
 	"sync"
 
-	"amortization"
-	"config"
-
 	"github.com/gin-gonic/gin"
+	"github.com/jiangshenghai57/andy-warhol/amortization"
+	"github.com/jiangshenghai57/andy-warhol/internal/config"
 )
 
 var (
