@@ -87,10 +87,28 @@ type AmortizationTable struct {
 	DelinqArrays    DelinqArrays `json:"delinq_arrays"`     // Delinquency performance arrays
 }
 
+func (p *PrepayInfo) ensureSMMArrayType() []float64 {
+
+	_, ok := interface{}(p.SMMArr).([]float64)
+
+	if !ok {
+		errMsg := "Type assertion failed: SMMArr is not of type []float64"
+		log.Println(errMsg)
+		panic(errMsg)
+	}
+	return p.SMMArr
+}
+
 // ConvertCPRToSMM converts CPR to SMM array for prepayment calculations
-func (p *PrepayInfo) ConvertCPRToSMM(numMonths int) {
+func (p *PrepayInfo) ConvertCPRToSMM(numMonths int) []float64 {
+	//
+	p.ensureSMMArrayType()
+
+	// // if CPR and SMM both are provided
+	// if p.PrepayCPR >= 0.0 && p.SMMArr != nil {
+
 	// numPeriods is the number of months
-	if p.PrepayCPR != 0.0 {
+	if p.PrepayCPR >= 0.0 {
 		log.Println("Converting CPR to SMM array for loan:")
 		// Correct SMM formula: SMM = 1 - (1 - CPR)^(1/12)
 		smm := 1 - math.Pow(1-p.PrepayCPR, 1.0/12.0)
@@ -104,6 +122,8 @@ func (p *PrepayInfo) ConvertCPRToSMM(numMonths int) {
 		// Initialize with zeros if no prepayment
 		p.SMMArr = make([]float64, numMonths)
 	}
+
+	return p.SMMArr
 }
 
 // GetAmortizationTable calculates and returns a complete amortization table
