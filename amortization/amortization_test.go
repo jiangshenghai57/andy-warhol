@@ -5,17 +5,17 @@ import (
 	"testing"
 )
 
-func TestEnsureSMMArrayType(t *testing.T) {
-	// Test with valid type
+func TestEnsureSMMArrayInitialized(t *testing.T) {
 	prepay := &PrepayInfo{
-		SMMArr: []float64{0.01, 0.02, 0.03},
+		PrepayCPR: 0.05,
+		SMMArr:    nil, // Explicitly nil
 	}
 
-	result := prepay.ensureSMMArrayType()
-	if len(result) != 3 {
-		t.Errorf("Expected length 3, got %d", len(result))
-	}
+	prepay.ensureSMMArrayInitialized(360)
 
+	if len(prepay.SMMArr) != 360 {
+		t.Errorf("Expected SMM array length 360, got %d", len(prepay.SMMArr))
+	}
 }
 
 func TestConvertCPRToSMM(t *testing.T) {
