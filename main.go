@@ -25,6 +25,34 @@ func getLoans(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, mortgages)
 }
 
+func getServiceInfo(c *gin.Context) {
+	info := gin.H{
+		"service": "andy-warhol",
+		"description": "Mortgage loan amortization calculation service",
+		"version": "1.0.0",
+		"endpoints": gin.H{
+			"GET /info": "Get service information and capabilities",
+			"GET /loans": "Retrieve list of processed loans",
+			"POST /loans": "Submit loan data for amortization calculation",
+		},
+		"capabilities": []string{
+			"Loan amortization schedule generation",
+			"CPR to SMM conversion for prepayment modeling",
+			"Concurrent loan processing",
+			"JSON serialization for API responses",
+			"Delinquency tracking support",
+		},
+		"loan_parameters": gin.H{
+			"id": "Unique loan identifier (string)",
+			"wam": "Weighted Average Maturity in months (integer)",
+			"wac": "Weighted Average Coupon rate per annum as percentage (float)",
+			"face": "Mortgage principal amount in dollars (float)",
+			"prepay_cpr": "Conditional Prepayment Rate as decimal (float, optional)",
+		},
+	}
+	c.IndentedJSON(http.StatusOK, info)
+}
+
 func requestCashflow(c *gin.Context) {
 	log.Println("requestCashflow endpoint was hit")
 
@@ -98,6 +126,7 @@ func multiLog() *gin.Engine {
 func main() {
 
 	router := multiLog()
+	router.GET("/info", getServiceInfo)
 	router.GET("/loans", getLoans)
 	router.POST("/loans", requestCashflow)
 
